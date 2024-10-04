@@ -1,66 +1,90 @@
-// app/lessons.js
-import React, { useEffect, useState } from "react";
-import { View, StyleSheet, FlatList, ActivityIndicator } from "react-native";
-import { Title, Card, Button } from "react-native-paper";
-import { useRouter } from "expo-router";
-import { db } from "../app/firebaseConfig"; // Firebase Firestore instance
-import { collection, getDocs } from "firebase/firestore"; // Firestore methods
+import React from 'react';
+import {
+  View,
+  StyleSheet,
+  Image,
+  Text,
+  Dimensions,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-export default function Lessons() {
-  const router = useRouter();
-  const [lessons, setLessons] = useState([]);
-  const [loading, setLoading] = useState(true);
+const { width } = Dimensions.get('window');
 
-  useEffect(() => {
-    const fetchLessons = async () => {
-      const lessonsCollection = collection(db, "lessons"); // Reference to lessons collection
-      const lessonSnapshot = await getDocs(lessonsCollection);
-      const lessonsList = lessonSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setLessons(lessonsList);
-      setLoading(false);
-    };
-
-    fetchLessons();
-  }, []);
-
-  if (loading) {
-    return <ActivityIndicator size="large" color="#0000ff" />;
+const planets = [
+  {
+    name: 'Planet 1',
+    image: require('../assets/planets/planet1.png'),
+    locked: false,
+  },
+  {
+    name: 'Planet 2',
+    image: require('../assets/planets/planet2.png'),
+    locked: true,
   }
-
-  return (
-    <View style={styles.container}>
-      <Title>Lessons</Title>
-      <FlatList
-        data={lessons}
-        renderItem={({ item }) => (
-          <Card style={styles.card}>
-            <Card.Content>
-              <Title>{item.title}</Title>
-              <Button 
-                mode="contained" 
-                onPress={() => router.push(`/lessons/${item.id}`)} // Navigate to individual lesson page
-              >
-                Start Lesson
-              </Button>
-            </Card.Content>
-          </Card>
-        )}
-        keyExtractor={item => item.id}
-      />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 16,
-  },
-  card: {
-    marginVertical: 8,
-    padding: 16,
-  },
-});
+  // Add more planets as needed
+];
+const PlanetsScreen = () => {
+    const navigation = useNavigation();
+  
+    const handlePlanetPress = (planet) => {
+      if (planet.name === 'Planet 1') {
+        navigation.navigate('Planet1'); // Navigate to Planet 1
+      } else {
+        console.log('Planet is locked or not implemented.');
+      }
+    };
+  
+    return (
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.planetsContainer}>
+          {planets.map((planet, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.planetButton,
+                planet.locked && styles.lockedPlanet,
+              ]}
+              disabled={planet.locked}
+              onPress={() => handlePlanetPress(planet)}
+            >
+              <Image source={planet.image} style={styles.planetImage} />
+              <Text style={styles.planetName}>{planet.name}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+    );
+  };
+  
+  export default PlanetsScreen;
+  
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: '#000',
+    },
+    planetsContainer: {
+      alignItems: 'center',
+      paddingVertical: 20,
+    },
+    planetButton: {
+      alignItems: 'center',
+      marginBottom: 20,
+      width: width * 0.8,
+    },
+    planetImage: {
+      width: 80,
+      height: 80,
+    },
+    planetName: {
+      marginTop: 5,
+      color: '#fff',
+      fontSize: 16,
+      textAlign: 'center',
+    },
+    lockedPlanet: {
+      opacity: 0.5,
+    },
+  });
