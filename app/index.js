@@ -6,7 +6,7 @@ import { auth } from "./firebaseConfig";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
 
-export default function Home() {
+export default function Index() {  // Changed the function name to 'Index'
   const { currentUser } = useAuth();
   const router = useRouter();
 
@@ -22,7 +22,7 @@ export default function Home() {
           <Title>Welcome to InfoSec Academy!</Title>
           <Paragraph>
             {currentUser 
-              ? `Hello, ${currentUser.email}! Ready to boost your information security skills?`
+              ? `Hello, ${currentUser.email}! Ready to boost your information security skills`
               : "Please log in to access your personalized learning journey."}
           </Paragraph>
           
@@ -48,6 +48,13 @@ export default function Home() {
                 style={styles.button}
               >
                 Settings
+              </Button>
+              <Button 
+                mode="outlined" 
+                onPress={() => router.push("/chatBot")}  // Navigate to ChatBot
+                style={styles.button}
+              >
+                Chat with Bot
               </Button>
               <Button 
                 mode="outlined" 
