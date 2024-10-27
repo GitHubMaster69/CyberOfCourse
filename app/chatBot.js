@@ -53,11 +53,12 @@ export default function ChatBot() {
     setMessages(newMessages);
     setInput("");
 
+    // Call your API to get a response
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer `, // Replace with your actual OpenAI API Key
+          "Authorization": `Bearer`, // Replace with your actual OpenAI API Key
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -98,7 +99,7 @@ export default function ChatBot() {
 
       {/* Static chat box */}
       {isOpen && (
-        <View style={[styles.chatBox, { top: position.y, left: position.x }]}>
+        <View style={styles.chatBox}>
           <ScrollView style={styles.messagesContainer}>
             {messages.map((msg, index) => (
               <Text key={index} style={msg.role === "user" ? styles.userText : styles.botText}>
@@ -149,6 +150,8 @@ const styles = StyleSheet.create({
     maxHeight: 400,
     padding: 10,
     position: 'absolute',
+    bottom: 80, // Adjust this to position the chat box above the fab
+    right: 20, // Align with the bubble
   },
   messagesContainer: {
     maxHeight: 300,
@@ -170,7 +173,7 @@ const styles = StyleSheet.create({
   input: {
     borderColor: "gray",
     borderWidth: 1,
-    padding: 15, // Increased padding for a larger text box
+    padding: 10,
     borderRadius: 5,
     marginBottom: 5,
   },
