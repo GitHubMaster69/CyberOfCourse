@@ -1,12 +1,49 @@
-import React, { useState } from "react";
-import { View, TextInput, Button, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  TextInput,
+  Button,
+  Text,
+  StyleSheet,
+  ScrollView,
+  PanResponder,
+  Animated,
+} from "react-native";
 
 export default function ChatBot() {
   const [messages, setMessages] = useState([{ 
     role: "system", 
-    content: "🎉 Hello, Cyber Guardian! I'm your enthusiastic cybersecurity assistant, here to make learning about cybersecurity fun and engaging! 🛡️ What challenges or questions can I help you with today?" 
+    content: "🎉 Hello, Cyber Guardian! I'm your enthusiastic cybersecurity assistant!" 
   }]);
   const [input, setInput] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Position for the draggable chat widget
+  const position = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+
+  // PanResponder for drag functionality
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        position.setOffset({
+          x: position.x._value,
+          y: position.y._value,
+        });
+        position.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        position.setValue({
+          x: gestureState.dx,
+          y: gestureState.dy,
+        });
+      },
+      onPanResponderRelease: () => {
+        position.flattenOffset(); // Flatten the offset
+      },
+    })
+  ).current;
 
   const handleSend = async () => {
     if (!input) return;
@@ -20,7 +57,7 @@ export default function ChatBot() {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
-          "Authorization": "Bearer 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", // Replace with your actual OpenAI API Key
+          "Authorization": `Bearer `, // Replace with your actual OpenAI API Key
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
@@ -36,27 +73,48 @@ export default function ChatBot() {
       console.error("Error sending message:", error);
       setMessages((prevMessages) => [
         ...prevMessages,
-        { role: "system", content: "🚨 Oops! Something went wrong. Don't worry, you can try again later! 🔄" }
+        { role: "system", content: "🚨 Oops! Something went wrong." }
       ]);
     }
   };
 
+  const toggleChat = () => {
+    setIsOpen(!isOpen);
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.chatBox}>
-        {messages.map((msg, index) => (
-          <Text key={index} style={msg.role === "user" ? styles.userText : styles.botText}>
-            {msg.content}
-          </Text>
-        ))}
-      </ScrollView>
-      <TextInput
-        style={styles.input}
-        placeholder="Type your message"
-        value={input}
-        onChangeText={setInput}
-      />
-      <Button title="Send" onPress={handleSend} />
+      <Animated.View
+        style={[
+          styles.fabContainer,
+          { transform: position.getTranslateTransform() },
+        ]}
+        {...panResponder.panHandlers}
+      >
+        <View style={styles.fab} onTouchEnd={toggleChat}>
+          <Text style={styles.fabText}>💬</Text>
+        </View>
+      </Animated.View>
+
+      {/* Static chat box */}
+      {isOpen && (
+        <View style={[styles.chatBox, { top: position.y, left: position.x }]}>
+          <ScrollView style={styles.messagesContainer}>
+            {messages.map((msg, index) => (
+              <Text key={index} style={msg.role === "user" ? styles.userText : styles.botText}>
+                {msg.content}
+              </Text>
+            ))}
+          </ScrollView>
+          <TextInput
+            style={styles.input}
+            placeholder="Type your message"
+            value={input}
+            onChangeText={setInput}
+          />
+          <Button title="Send" onPress={handleSend} />
+        </View>
+      )}
     </View>
   );
 }
@@ -64,11 +122,36 @@ export default function ChatBot() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+  },
+  fabContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+  },
+  fab: {
+    backgroundColor: '#007AFF',
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+  },
+  fabText: {
+    fontSize: 24,
+    color: 'white',
   },
   chatBox: {
-    flex: 1,
-    marginBottom: 10,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    elevation: 4,
+    width: 300,
+    maxHeight: 400,
+    padding: 10,
+    position: 'absolute',
+  },
+  messagesContainer: {
+    maxHeight: 300,
   },
   userText: {
     alignSelf: "flex-end",
@@ -87,7 +170,7 @@ const styles = StyleSheet.create({
   input: {
     borderColor: "gray",
     borderWidth: 1,
-    padding: 10,
+    padding: 15, // Increased padding for a larger text box
     borderRadius: 5,
     marginBottom: 5,
   },

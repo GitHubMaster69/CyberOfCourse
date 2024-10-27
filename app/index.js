@@ -1,12 +1,13 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
-import { Button, Text, Card, Title, Paragraph } from "react-native-paper";
+import { Button, Card, Title, Paragraph } from "react-native-paper";
 import { useAuth } from "./authContext";
 import { auth } from "./firebaseConfig";
 import { signOut } from "firebase/auth";
 import { useRouter } from "expo-router";
+import ChatBot from "./chatBot"; // Import the ChatBot component
 
-export default function Index() {  // Changed the function name to 'Index'
+export default function Index() {
   const { currentUser } = useAuth();
   const router = useRouter();
 
@@ -22,7 +23,7 @@ export default function Index() {  // Changed the function name to 'Index'
           <Title>Welcome to InfoSec Academy!</Title>
           <Paragraph>
             {currentUser 
-              ? `Hello, ${currentUser.email}! Ready to boost your information security skills`
+              ? `Hello, ${currentUser.email}! Ready to boost your information security skills?`
               : "Please log in to access your personalized learning journey."}
           </Paragraph>
           
@@ -54,13 +55,7 @@ export default function Index() {  // Changed the function name to 'Index'
                 onPress={() => router.push("/chatBot")}  // Navigate to ChatBot
                 style={styles.button}
               >
-                Chat with Bot
-              </Button>
-              <Button 
-                mode="outlined" 
-                onPress={handleSignOut} 
-                style={styles.button}
-              >
+              
                 Logout
               </Button>
             </>
@@ -84,6 +79,8 @@ export default function Index() {  // Changed the function name to 'Index'
           )}
         </Card.Content>
       </Card>
+      {/* Add the ChatBot component here */}
+      <ChatBot /> 
     </View>
   );
 }
