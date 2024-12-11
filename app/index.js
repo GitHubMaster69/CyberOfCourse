@@ -48,7 +48,14 @@ export default function Index() {
                 onPress={() => router.push("/settings")}  // Navigate to Settings
                 style={styles.button}
               >
-                Settings
+                  settings
+              </Button>
+              <Button 
+                mode="outlined" 
+                onPress={() => router.push("/dashboard")}  // Navigate to Settings
+                style={styles.button}
+              >
+                dashboard
               </Button>
               <Button 
                 mode="outlined" 

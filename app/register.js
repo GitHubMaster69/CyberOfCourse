@@ -17,10 +17,13 @@ export default function Register() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Add user metadata to Firestore
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         points: 0,
-        currentLevel: 1,
+        progressLevel: 1, // Start with level 1
+        riskLevel: "low", // Default risk level
+        createdAt: new Date().toISOString(), // Store account creation date
       });
 
       Alert.alert("Registration Successful", "User registered successfully");
