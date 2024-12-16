@@ -16,22 +16,24 @@ export default function Register() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-
+  
       // Add user metadata to Firestore
       await setDoc(doc(db, "users", user.uid), {
         email: user.email,
         points: 0,
         progressLevel: 1, // Start with level 1
         riskLevel: "low", // Default risk level
+        weaknesses: ["Urgency cues", "Clicking suspicious links"], // Default weaknesses
         createdAt: new Date().toISOString(), // Store account creation date
       });
-
+  
       Alert.alert("Registration Successful", "User registered successfully");
       router.push("/");
     } catch (error) {
       Alert.alert("Registration Error", error.message);
     }
   };
+  
 
   return (
     <View style={styles.container}>

@@ -1,27 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import ConfettiCannon from 'react-native-confetti-cannon';
-import { useRouter } from 'expo-router';
 import { doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import { useAuth } from './authContext';
 
 const questions = [
-  // Sample questions as in your original code
+  {
+    question: 'What is phishing?',
+    options: [
+      'A type of hacking',
+      'A fraudulent attempt to obtain sensitive information',
+      'A secure way to send emails',
+      'An antivirus software',
+    ],
+    correctAnswer: 1,
+  },
+  {
+    question: 'Which of the following is a strong password?',
+    options: ['password123', '123456', 'MyP@ssw0rd!', 'qwerty'],
+    correctAnswer: 2,
+  },
+  {
+    question: 'What should you do if you receive a suspicious email?',
+    options: [
+      'Ignore it',
+      'Click the links to investigate',
+      'Report it to your IT department',
+      'Reply to ask for more information',
+    ],
+    correctAnswer: 2,
+  },
 ];
 
 const Planet1 = () => {
-  const { currentUser } = useAuth(); // Get current user metadata
-  const router = useRouter();
+  const { currentUser } = useAuth();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(3);
   const [timer, setTimer] = useState(15);
   const [gameOver, setGameOver] = useState(false);
 
+  useEffect(() => {
+    if (timer > 0 && !gameOver) {
+      const timerId = setTimeout(() => setTimer(timer - 1), 1000);
+      return () => clearTimeout(timerId);
+    } else if (timer === 0) {
+      handleAnswerPress(null); // Treat timeout as incorrect answer
+    }
+  }, [timer, gameOver]);
+
   const handleAnswerPress = async (index) => {
-    const question = questions[currentQuestionIndex];
-    const correct = index === question.correctAnswer;
+    const currentQuestion = questions[currentQuestionIndex];
+    if (!currentQuestion) {
+      return;
+    }
+
+    const correct = index === currentQuestion.correctAnswer;
 
     if (correct) {
       setScore(score + timer * 10);
@@ -35,15 +70,14 @@ const Planet1 = () => {
 
     if (currentQuestionIndex + 1 < questions.length) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      setTimer(10);
+      setTimer(15); // Reset timer for the next question
     } else {
       setGameOver(true);
       if (correct && currentUser) {
-        // Update progressLevel in Firestore
         const userDocRef = doc(db, 'users', currentUser.uid);
         await updateDoc(userDocRef, {
-          progressLevel: increment(1), // Increment progress level
-          points: increment(score),   // Add the score to user's points
+          progressLevel: increment(1),
+          points: increment(score),
         });
       }
     }
@@ -53,9 +87,19 @@ const Planet1 = () => {
     setCurrentQuestionIndex(0);
     setScore(0);
     setLives(3);
-    setTimer(10);
+    setTimer(15);
     setGameOver(false);
   };
+
+  if (!questions || questions.length === 0) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>No questions available.</Text>
+      </View>
+    );
+  }
+
+  const currentQuestion = questions[currentQuestionIndex] || {};
 
   return (
     <View style={styles.container}>
@@ -71,12 +115,18 @@ const Planet1 = () => {
         <>
           <Text style={styles.livesText}>Lives: {lives}</Text>
           <Text style={styles.timerText}>Timer: {timer}s</Text>
-          <Text style={styles.questionText}>{questions[currentQuestionIndex].question}</Text>
-          {questions[currentQuestionIndex].options.map((option, index) => (
-            <TouchableOpacity key={index} onPress={() => handleAnswerPress(index)}>
-              <Text style={styles.option}>{option}</Text>
-            </TouchableOpacity>
-          ))}
+          {currentQuestion.question ? (
+            <>
+              <Text style={styles.questionText}>{currentQuestion.question}</Text>
+              {currentQuestion.options.map((option, index) => (
+                <TouchableOpacity key={index} onPress={() => handleAnswerPress(index)}>
+                  <Text style={styles.option}>{option}</Text>
+                </TouchableOpacity>
+              ))}
+            </>
+          ) : (
+            <Text style={styles.errorText}>No question found.</Text>
+          )}
         </>
       )}
     </View>
@@ -92,6 +142,7 @@ const styles = StyleSheet.create({
   gameOverText: { fontSize: 28, color: 'red' },
   scoreText: { fontSize: 20, marginVertical: 10 },
   restartButton: { fontSize: 18, color: 'white', backgroundColor: 'green', padding: 10 },
+  errorText: { fontSize: 18, color: 'red' },
 });
 
 export default Planet1;

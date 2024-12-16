@@ -55,14 +55,20 @@ export default function Index() {
                 onPress={() => router.push("/dashboard")}  // Navigate to Settings
                 style={styles.button}
               >
-                dashboard
+                    test
               </Button>
               <Button 
                 mode="outlined" 
-                onPress={() => router.push("/chatBot")}  // Navigate to ChatBot
+                onPress={() => router.push("/phishingGame")}  // Navigate to Settings
                 style={styles.button}
               >
-              
+                  Dashboard
+              </Button>
+              <Button 
+                mode="outlined" 
+                onPress={handleSignOut}  // Call handleSignOut for logout
+                style={styles.button}
+              >
                 Logout
               </Button>
             </>
