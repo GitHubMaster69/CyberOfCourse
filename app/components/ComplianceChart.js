@@ -2,6 +2,12 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { BarChart } from "react-native-chart-kit";
 
+// ComplianceChart component that displays a bar chart of compliance progress
+// The compliance status is passed as a prop and determines the data for the chart
+// The component uses the BarChart component from react-native-chart-kit to display the data
+// The component is used in the Dashboard component to display compliance progress
+
+
 export default function ComplianceChart({ complianceStatus }) {
   const data = {
     labels: Object.keys(complianceStatus),

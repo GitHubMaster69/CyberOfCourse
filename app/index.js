@@ -55,14 +55,14 @@ export default function Index() {
                 onPress={() => router.push("/dashboard")}  // Navigate to Settings
                 style={styles.button}
               >
-                    test
+                    Dashboard
               </Button>
               <Button 
                 mode="outlined" 
                 onPress={() => router.push("/phishingGame")}  // Navigate to Settings
                 style={styles.button}
               >
-                  Dashboard
+                  Phishing Simulator
               </Button>
               <Button 
                 mode="outlined" 

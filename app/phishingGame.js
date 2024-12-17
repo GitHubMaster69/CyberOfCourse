@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Button, StyleSheet, Alert, ScrollView } from "react-native";
-import { fetchEmployeeMetadata } from "./employeeMetadata"; // Helper to fetch metadata
-import { generatePhishingEmail } from "./openaiHelpers"; // Helper to generate phishing emails
-import { useAuth } from "./authContext"; // Get current user's metadata
+import { View, Text, Button, StyleSheet, Alert, ScrollView, Animated } from "react-native";
+import { fetchEmployeeMetadata } from "./employeeMetadata";
+import { generatePhishingEmail } from "./openaiHelpers";
+import { useAuth } from "./authContext";
 import { db } from "./firebaseConfig";
 import { doc, updateDoc, arrayUnion, increment } from "firebase/firestore";
 
@@ -12,29 +12,26 @@ export default function PhishingGame() {
   const [correctResponse, setCorrectResponse] = useState("");
   const [options, setOptions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [metadata, setMetadata] = useState(null); // Store user metadata locally
+  const [metadata, setMetadata] = useState(null);
+  const [feedbackColor, setFeedbackColor] = useState(new Animated.Value(0)); // Animation for feedback
 
   useEffect(() => {
     const setupGame = async () => {
       if (!currentUser) return;
 
       try {
-        // Fetch employee metadata
         const userMetadata = await fetchEmployeeMetadata(currentUser.uid);
 
-        // Ensure weaknesses have default values if empty
         if (!userMetadata.weaknesses || userMetadata.weaknesses.length === 0) {
           userMetadata.weaknesses = ["General cybersecurity"];
         }
 
         setMetadata(userMetadata);
-
-        // Generate a phishing email based on weaknesses
         const { email, correctResponse, options } = await generatePhishingEmail(userMetadata);
 
-        setPhishingEmail(email);
+        setPhishingEmail(replacePlaceholders(email));
         setCorrectResponse(correctResponse);
-        setOptions(options);
+        setOptions(options.filter((opt) => !opt.includes("Phishing Indicator"))); // Exclude questions from options
         setLoading(false);
       } catch (error) {
         console.error("Error setting up game:", error);
@@ -45,53 +42,68 @@ export default function PhishingGame() {
     setupGame();
   }, [currentUser]);
 
+  const replacePlaceholders = (email) => {
+    return email.replace(/\[.*?\]/g, "[Link]").replace("Malicious Link", "Suspicious Link");
+  };
+
   const handleOptionSelect = async (selectedOption) => {
     if (!metadata || !currentUser) return;
 
     const userDocRef = doc(db, "users", currentUser.uid);
 
     if (selectedOption === correctResponse) {
-      Alert.alert("Correct!", "You identified the phishing indicator.");
-
-      // Update user points and possibly lower risk level
-      await updateDoc(userDocRef, {
-        points: increment(10), // Award points
-        riskLevel: metadata.riskLevel === "high" ? "medium" : metadata.riskLevel === "medium" ? "low" : "low", // Lower risk level
+      Animated.timing(feedbackColor, {
+        toValue: 1, // Green feedback for correct
+        duration: 500,
+        useNativeDriver: false,
+      }).start(() => {
+        // Reset the feedback animation after it's done
+        feedbackColor.setValue(0);
+        generateNewScenario(); // Automatically go to next scenario
       });
 
-      // Update local metadata
+      await updateDoc(userDocRef, {
+        points: increment(10),
+        riskLevel: metadata.riskLevel === "high" ? "medium" : metadata.riskLevel === "medium" ? "low" : "low",
+      });
+
       setMetadata({
         ...metadata,
         points: metadata.points + 10,
         riskLevel: metadata.riskLevel === "high" ? "medium" : metadata.riskLevel === "medium" ? "low" : "low",
       });
     } else {
-      Alert.alert("Incorrect", "This is not the phishing indicator. Please try again.");
-
-      // Add the scenario as a weakness
-      await updateDoc(userDocRef, {
-        weaknesses: arrayUnion(selectedOption), // Add the incorrectly selected option to weaknesses
-        riskLevel: metadata.riskLevel === "low" ? "medium" : "high", // Increase risk level
+      Animated.timing(feedbackColor, {
+        toValue: -1, // Red feedback for incorrect
+        duration: 500,
+        useNativeDriver: false,
+      }).start(() => {
+        feedbackColor.setValue(0); // Reset feedback
       });
 
-      // Update local metadata
+      await updateDoc(userDocRef, {
+        weaknesses: arrayUnion(selectedOption),
+        riskLevel: metadata.riskLevel === "low" ? "medium" : "high",
+      });
+
       setMetadata({
         ...metadata,
         weaknesses: [...metadata.weaknesses, selectedOption],
         riskLevel: metadata.riskLevel === "low" ? "medium" : "high",
       });
+
+      Alert.alert("Incorrect", "This is not the phishing indicator. Please try again.");
     }
   };
 
   const generateNewScenario = async () => {
     setLoading(true);
     try {
-      // Generate a new phishing email based on updated metadata
       const { email, correctResponse, options } = await generatePhishingEmail(metadata);
 
-      setPhishingEmail(email);
+      setPhishingEmail(replacePlaceholders(email));
       setCorrectResponse(correctResponse);
-      setOptions(options);
+      setOptions(options.filter((opt) => !opt.includes("Phishing Indicator")));
     } catch (error) {
       console.error("Error generating new phishing scenario:", error);
       Alert.alert("Error", "Unable to generate a new phishing scenario. Please try again.");
@@ -109,7 +121,17 @@ export default function PhishingGame() {
   }
 
   return (
-    <View style={styles.container}>
+    <Animated.View
+      style={[
+        styles.container,
+        {
+          backgroundColor: feedbackColor.interpolate({
+            inputRange: [-1, 0, 1],
+            outputRange: ["#FFCCCC", "#FFFFFF", "#CCFFCC"], // Red, white, green
+          }),
+        },
+      ]}
+    >
       <Text style={styles.header}>Phishing Email Game</Text>
       <ScrollView style={styles.emailContainer}>
         <Text style={styles.emailText}>{phishingEmail}</Text>
@@ -120,14 +142,10 @@ export default function PhishingGame() {
           key={index}
           title={option}
           onPress={() => handleOptionSelect(option)}
+          style={styles.optionButton}
         />
       ))}
-      <Button
-        title="Next Scenario"
-        onPress={generateNewScenario}
-        style={styles.nextButton}
-      />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -158,7 +176,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
-  nextButton: {
-    marginTop: 20,
+  optionButton: {
+    marginVertical: 10,
   },
 });
